@@ -1,0 +1,5 @@
+".\obj\START_AD.obj",
+".\obj\Lab_2.obj",
+".\obj\dallas.obj" 
+TO ".\obj\Lab_2" 
+PRINT(".\List\Lab_2.m51") RAMSIZE(256) 

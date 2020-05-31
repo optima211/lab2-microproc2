@@ -1,0 +1,27 @@
+#include "ADuC842.h" // подключение заголовочного файла ADuC842.h
+#include "dallas.h"  // подключение заголовочного файла  dallas.h
+
+// ввод массива шестнадцатиричных кодов для 7- сегментного индикатора: 
+
+//отображаются {0, 1, 2... E, F}
+
+unsigned char digitP0[16] = {0xB7, 0x14, 0x73, 0x76,
+0xD4, 0xE6, 0xE7, 0x34,
+0xF7, 0xF6, 0xF5, 0xC7,
+0xA3, 0x57, 0xE3, 0xE1};
+
+unsigned char digitP2[16] = {0xD7, 0x11, 0xE3, 0x73,
+0x35, 0x76, 0xF6, 0x13, 
+0xF7, 0x77, 0xB7, 0xF4,
+0xC6, 0xF1, 0xE6, 0xA6};
+ 
+void main() { 
+char t; 
+P0 = P2 = 0;	
+while (1) 
+{ 
+t = GetTemp();	
+P0 = digitP0[t/10];
+P2 = digitP2[t%10];	
+}
+}

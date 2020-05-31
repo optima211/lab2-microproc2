@@ -1,0 +1,141 @@
+C51 COMPILER V6.22  DALLAS                                                                 05/31/2020 18:41:30 PAGE 1   
+
+
+C51 COMPILER V6.22, COMPILATION OF MODULE DALLAS
+OBJECT MODULE PLACED IN .\obj\dallas.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\Keil\C51\BIN\C51.EXE dallas.c BROWSE DEBUG OBJECTEXTEND SYMBOLS PRINT(.\List
+                    -\dallas.lst) OBJECT(.\obj\dallas.obj) 
+
+stmt level    source
+
+   1          #include "dallas.h"
+   2          
+   3          // Calling the routine takes about 24us, and then
+   4          // each count takes another 16us.
+   5          void delay(int useconds) {
+   6   1        int s;
+   7   1        for (s=0; s<useconds; s++);
+   8   1      }
+   9          
+  10          // OW_RESET - performs a reset on the one-wire bus and
+  11          // returns the presence detect. Reset is 480us, so delay
+  12          // value is (480-24)/16 = 28.5 - we use 29. Presence checked
+  13          // another 70us later, so delay is (70-24)/16 = 2.875 - we use 3.
+  14          unsigned char ow_reset (void) {
+  15   1        unsigned char presence;
+  16   1      
+  17   1        DQ = 0;                       // pull DQ line low
+  18   1        delay(29);            // leave it low for 480us
+  19   1        DQ = 1;                       // allow line to return high
+  20   1        delay(3);             // wait for presence
+  21   1        presence = DQ;        // get presence signal
+  22   1        delay(25);            // wait for end of timeslot
+  23   1        return(presence); // presence signal returned
+  24   1      }                                       // 0=presence, 1 = no part
+  25          
+  26          // READ_BIT - reads a bit from the one-wire bus. The delay
+  27          // required for a read is 15us, so the DELAY routine won't work.
+  28          // We put our own delay function in this routine in the form of a
+  29          // for() loop.
+  30          unsigned char read_bit(void) {
+  31   1        unsigned char i;
+  32   1      
+  33   1        DQ = 0;                               // pull DQ low to start timeslot
+  34   1        DQ = 1;                               // then return high
+  35   1        for (i=0; i<3; i++);  // delay 15us from start of timeslot
+  36   1        return(DQ);                   // return value of DQ line
+  37   1      }
+  38          
+  39          
+  40          // WRITE_BIT - writes a bit to the one-wire bus, passed in bitval.
+  41          void write_bit(char bitval) {
+  42   1        DQ = 0;                               // pull DQ low to start timeslot
+  43   1        if(bitval==1) DQ =1;  // return DQ high if write 1
+  44   1        delay(5);                     // hold value for remainder of timeslot
+  45   1        DQ = 1;                               // Delay provides 16us per loop, plus 24us. Therefore delay(5) = 104us
+  46   1      }                                               
+  47          
+  48          // READ_BYTE - reads a byte from the one-wire bus.
+  49          unsigned char read_byte(void) {
+  50   1        unsigned char i;
+  51   1        unsigned char value = 0;
+  52   1      
+  53   1        for (i=0;i<8;i++) {
+  54   2          if(read_bit()) value|=0x01<<i;      // reads byte in, one byte at a time and then
+C51 COMPILER V6.22  DALLAS                                                                 05/31/2020 18:41:30 PAGE 2   
+
+  55   2                                                                              // shifts it left
+  56   2              delay(6);                                               // wait for rest of timeslot
+  57   2        }
+  58   1        return(value);
+  59   1      }
+  60          
+  61          // WRITE_BYTE - writes a byte to the one-wire bus.
+  62          void write_byte(char val) {
+  63   1        unsigned char i;
+  64   1        unsigned char temp;
+  65   1      
+  66   1        for (i=0; i<8; i++) {         // writes byte, one bit at a time
+  67   2          temp = val>>i;                      // shifts val right 'i' spaces
+  68   2          temp &= 0x01;                       // copy that bit to temp
+  69   2          write_bit(temp);            // write bit in temp into
+  70   2        }
+  71   1        delay(5);
+  72   1      }
+  73          
+  74          char GetTemp(void) {
+  75   1        unsigned char get[10];
+  76   1        int k;
+  77   1      
+  78   1        ow_reset();
+  79   1        write_byte(0xCC);                                                                     // Skip ROM
+  80   1        write_byte(0x44);                                                                     // Start Conversion
+  81   1        delay(5);
+  82   1        while (!DQ);
+  83   1      
+  84   1        ow_reset();
+  85   1        write_byte(0xCC);                                                                     // Skip ROM
+  86   1        write_byte(0xBE);                                                                     // Read Scratch Pad
+  87   1        for (k=0;k<9;k++) {get[k]=read_byte();}
+  88   1        return (get[1] << 4) | (get[0] >> 4);                                 // Integer part of Temperature
+  89   1      }
+C51 COMPILER V6.22  DALLAS                                                                 05/31/2020 18:41:30 PAGE 3   
+
+NAME                                    CLASS   MSPACE  TYPE    OFFSET  SIZE
+====                                    =====   ======  ====    ======  ====
+
+
+DQ . . . . . . . . . . . . . . . . . .  ABSBIT   -----  BIT      00B3H  1
+_write_byte. . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  val. . . . . . . . . . . . . . . . .  * REG *  DATA   CHAR     0001H  1
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0003H  1
+  temp . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0002H  1
+_write_bit . . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  bitval . . . . . . . . . . . . . . .  * REG *  DATA   CHAR     0007H  1
+read_byte. . . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0002H  1
+  value. . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0003H  1
+GetTemp. . . . . . . . . . . . . . . .  PUBLIC   CODE   PROC     0000H  -----
+  get. . . . . . . . . . . . . . . . .  AUTO     DATA   ARRAY    0000H  10
+  k. . . . . . . . . . . . . . . . . .  * REG *  DATA   INT      0082H  2
+read_bit . . . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  i. . . . . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0007H  1
+ow_reset . . . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  presence . . . . . . . . . . . . . .  * REG *  DATA   U_CHAR   0003H  1
+_delay . . . . . . . . . . . . . . . .  STATIC   CODE   PROC     0000H  -----
+  useconds . . . . . . . . . . . . . .  * REG *  DATA   INT      0006H  2
+  s. . . . . . . . . . . . . . . . . .  * REG *  DATA   INT      0004H  2
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    230    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
